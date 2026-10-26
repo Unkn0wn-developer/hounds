@@ -10,6 +10,8 @@ const CONFIG = {
   MU_NAME: "GreyHounds",
   REFRESH_SECONDS: 30,
   BATCH_SIZE: 25,
+  // How long after a skills reset the next one becomes available.
+  SKILL_RESET_COOLDOWN_DAYS: 7,
 };
 
 const ROLE_RANK = { owner: 0, manager: 1, commander: 2, member: 3 };
@@ -143,11 +145,12 @@ function buildRow(id, result, mu) {
       name: "Unknown (" + id.slice(-6) + ")",
       level: null, health: barOf(null), hunger: barOf(null),
       buff: { state: "neutral", buff: 0, debuff: 0, endAt: null, codes: [] },
-      damage: null, lastSeen: null, raw: null,
+      damage: null, lastSeen: null, resetAt: null, raw: null,
     };
   }
   const u = result.data;
   const sk = u.skills || {};
+  const lastReset = u.dates && u.dates.lastSkillsResetAt ? Date.parse(u.dates.lastSkillsResetAt) : null;
   return {
     id, role, roleRank: ROLE_RANK[role], failed: false,
     name: u.username || ("User " + id.slice(-6)),
@@ -157,6 +160,8 @@ function buildRow(id, result, mu) {
     buff: buffInfo(u),
     damage: u.stats && typeof u.stats.damagesCount === "number" ? u.stats.damagesCount : null,
     lastSeen: u.dates && u.dates.lastConnectionAt ? Date.parse(u.dates.lastConnectionAt) : null,
+    // Time when the next skills reset becomes available. 0 = never reset, so available now.
+    resetAt: lastReset != null ? lastReset + CONFIG.SKILL_RESET_COOLDOWN_DAYS * 86400000 : 0,
     raw: u,
   };
 }
@@ -193,6 +198,18 @@ function dur(ms) {
   if (hr > 0) return hr + "h " + m + "m";
   if (m > 0) return m + "m " + sec + "s";
   return sec + "s";
+}
+
+// Longer format with days, e.g. "1d 7h 3m", "6h 27m"
+function durLong(ms) {
+  if (ms <= 0) return "0m";
+  const m = Math.floor(ms / 60000);
+  const d = Math.floor(m / 1440);
+  const hr = Math.floor((m % 1440) / 60);
+  const mm = m % 60;
+  if (d > 0) return d + "d " + hr + "h " + mm + "m";
+  if (hr > 0) return hr + "h " + mm + "m";
+  return mm + "m";
 }
 
 /* ============================================================
@@ -256,6 +273,7 @@ const SORTERS = {
   buff: (r) => BUFF_RANK[r.buff.state] * 1e14 + (r.buff.endAt || 0),
   damage: (r) => r.damage,
   seen: (r) => r.lastSeen,
+  reset: (r) => r.resetAt,
 };
 
 function visibleRows() {
@@ -313,6 +331,23 @@ function barEl(kind, b) {
   return el;
 }
 
+function resetCell(row) {
+  const td = h("td");
+  if (row.resetAt == null) { td.textContent = "—"; return td; }
+  const left = row.resetAt - Date.now();
+  td.append(h("span", {
+    class: "reset " + (left <= 0 ? "avail" : "wait"),
+    "data-reset": String(row.resetAt),
+  }, left <= 0 ? "Available" : durLong(left)));
+  return td;
+}
+
+function tag(td, cls, label) {
+  td.classList.add(cls);
+  if (label) td.setAttribute("data-label", label);
+  return td;
+}
+
 function resourcesCell(row) {
   return h("td", {}, h("div", { class: "res" }, barEl("health", row.health), barEl("hunger", row.hunger)));
 }
@@ -320,7 +355,7 @@ function resourcesCell(row) {
 function detailRow(row) {
   const u = row.raw;
   const tr = h("tr", { class: "detail" });
-  const td = h("td", { colspan: "5" });
+  const td = h("td", { colspan: "6" });
   if (!u) {
     td.textContent = "Could not load this member: " + row.error;
     tr.append(td);
@@ -341,6 +376,9 @@ function detailRow(row) {
     ["Wealth rank value", u.rankings && u.rankings.userWealth ? fmt(u.rankings.userWealth.value) : "—"],
     ["Damage rank", u.rankings && u.rankings.userDamages ? "#" + u.rankings.userDamages.rank : "—"],
   ];
+  if (u.dates && u.dates.lastSkillsResetAt) {
+    pairs.push(["Last skills reset", new Date(u.dates.lastSkillsResetAt).toLocaleDateString()]);
+  }
   if (row.buff.codes.length) pairs.unshift(["Active buff", row.buff.codes.join(", ")]);
   const grid = h("div", { class: "detailgrid" });
   pairs.forEach(([k, v]) => grid.append(h("div", {}, h("span", {}, k), String(v))));
@@ -388,6 +426,8 @@ function render() {
     th.classList.toggle("sorted", active);
     th.classList.toggle("desc", active && state.sortDir === -1);
   });
+  const sortSelect = $("#sortSelect");
+  if (sortSelect) sortSelect.value = state.sortKey;
 
   const rows = visibleRows();
   $("#range").textContent = rows.length
@@ -404,13 +444,15 @@ function render() {
       },
     });
     tr.append(
-      nameCell(row),
-      pillCell(row),
-      resourcesCell(row),
-      h("td", { class: "num mono hide-sm" }, fmt(row.damage)),
-      h("td", { class: "muted hide-sm" }, row.failed
+      tag(nameCell(row), "c-name"),
+      tag(pillCell(row), "c-pill"),
+      tag(resourcesCell(row), "c-res"),
+      tag(h("td", { class: "num mono" }, fmt(row.damage)), "c-dmg", "Lifetime dmg"),
+      tag(h("td", { class: "muted" }, row.failed
         ? "load error"
-        : h("span", { "data-seen": row.lastSeen != null ? String(row.lastSeen) : "" }, relAgo(row.lastSeen, now))));
+        : h("span", { "data-seen": row.lastSeen != null ? String(row.lastSeen) : "" }, relAgo(row.lastSeen, now))),
+        "c-seen", "Last seen"),
+      tag(resetCell(row), "c-reset", "Skills reset"));
     frag.append(tr);
     if (state.expanded.has(row.id)) frag.append(detailRow(row));
   }
@@ -469,6 +511,11 @@ function tick() {
   document.querySelectorAll("[data-seen]").forEach((el) => {
     if (el.dataset.seen) el.textContent = relAgo(Number(el.dataset.seen), now);
   });
+  document.querySelectorAll("[data-reset]").forEach((el) => {
+    const left = Number(el.dataset.reset) - now;
+    el.textContent = left <= 0 ? "Available" : durLong(left);
+    el.className = "reset " + (left <= 0 ? "avail" : "wait");
+  });
   updateStatus();
   if (!state.paused && !state.loading && state.nextAt && now >= state.nextAt) refresh();
 }
@@ -476,6 +523,8 @@ function tick() {
 function init() {
   $("#filterText").addEventListener("input", (e) => { state.filterText = e.target.value; render(); });
   $("#filterStatus").addEventListener("change", (e) => { state.filterStatus = e.target.value; render(); });
+  $("#sortSelect").addEventListener("change", (e) => { state.sortKey = e.target.value; state.sortDir = 1; render(); });
+  $("#btnSortDir").addEventListener("click", () => { state.sortDir = -state.sortDir; render(); });
   $("#btnRefresh").addEventListener("click", () => refresh());
   $("#btnPause").addEventListener("click", (e) => {
     state.paused = !state.paused;
@@ -496,7 +545,7 @@ function init() {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { buildRow, buffInfo, roleOf, fmt, dur, relAgo };
+  module.exports = { buildRow, buffInfo, roleOf, fmt, dur, durLong, relAgo };
 } else {
   document.addEventListener("DOMContentLoaded", init);
 }
