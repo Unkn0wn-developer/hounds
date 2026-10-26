@@ -10,13 +10,23 @@ const CONFIG = {
   MU_NAME: "GreyHounds",
   REFRESH_SECONDS: 30,
   BATCH_SIZE: 25,
-  MIN_HEALTH_TO_FIGHT: 10,
-  ONLINE_WITHIN_MINUTES: 10,
 };
 
 const ROLE_RANK = { owner: 0, manager: 1, commander: 2, member: 3 };
 const ROLE_LABEL = { owner: "Owner", manager: "Manager", commander: "Commander", member: "Member" };
+const ROLE_LETTER = { owner: "O", manager: "M", commander: "C" };
 const BUFF_RANK = { buffed: 2, neutral: 1, debuffed: 0 };
+
+/* Small inline icons (static strings, not user data) */
+const ICONS = {
+  heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+  fork: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>',
+  pill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8.5" width="20" height="7" rx="3.5" transform="rotate(-45 12 12)"/><path d="M9.5 9.5l5 5"/></svg>',
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/><path d="M6 20l6-6 6 6"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.8c2 .6 3.3 2.3 3.5 5.2"/></svg>',
+  hq: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 000 8.4M16.2 7.8a6 6 0 010 8.4M4.9 4.9a10 10 0 000 14.2M19.1 4.9a10 10 0 010 14.2"/></svg>',
+  bed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18V6M3 14h18v4M21 14v-2a3 3 0 00-3-3h-7v5"/><circle cx="7" cy="11" r="1.5"/></svg>',
+};
 
 /* ============================================================
    API
@@ -131,26 +141,22 @@ function buildRow(id, result, mu) {
       id, role, roleRank: ROLE_RANK[role], failed: true,
       error: (result && result.error) || "no data",
       name: "Unknown (" + id.slice(-6) + ")",
-      level: null, health: barOf(null), hunger: barOf(null), energy: barOf(null), stamina: barOf(null),
+      level: null, health: barOf(null), hunger: barOf(null),
       buff: { state: "neutral", buff: 0, debuff: 0, endAt: null, codes: [] },
-      attack: null, lastSeen: null, canFight: false, raw: null,
+      damage: null, lastSeen: null, raw: null,
     };
   }
   const u = result.data;
   const sk = u.skills || {};
-  const health = barOf(sk.health);
   return {
     id, role, roleRank: ROLE_RANK[role], failed: false,
     name: u.username || ("User " + id.slice(-6)),
     level: u.leveling ? u.leveling.level : null,
-    health,
+    health: barOf(sk.health),
     hunger: barOf(sk.hunger),
-    energy: barOf(sk.energy),
-    stamina: barOf(sk.stamina),
     buff: buffInfo(u),
-    attack: sk.attack ? sk.attack.total : null,
+    damage: u.stats && typeof u.stats.damagesCount === "number" ? u.stats.damagesCount : null,
     lastSeen: u.dates && u.dates.lastConnectionAt ? Date.parse(u.dates.lastConnectionAt) : null,
-    canFight: health.cur != null && health.cur >= CONFIG.MIN_HEALTH_TO_FIGHT,
     raw: u,
   };
 }
@@ -189,13 +195,11 @@ function dur(ms) {
   return sec + "s";
 }
 
-function isOnline(row, now) {
-  return row.lastSeen != null && now - row.lastSeen <= CONFIG.ONLINE_WITHIN_MINUTES * 60000;
-}
-
 /* ============================================================
    DOM
    ============================================================ */
+function $(sel) { return document.querySelector(sel); }
+
 function h(tag, attrs, ...kids) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
@@ -208,6 +212,26 @@ function h(tag, attrs, ...kids) {
     el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
   }
   return el;
+}
+
+function icon(name) {
+  const s = document.createElement("span");
+  s.className = "ico";
+  s.innerHTML = ICONS[name] || ""; // static, trusted strings only
+  return s;
+}
+
+function avatarEl(url, fallbackText, cls) {
+  const wrap = h("span", { class: cls || "avatar" });
+  const letter = (fallbackText || "?").trim().charAt(0).toUpperCase();
+  if (typeof url === "string" && url.startsWith("https://")) {
+    const img = h("img", { src: url, alt: "", loading: "lazy", referrerpolicy: "no-referrer" });
+    img.addEventListener("error", () => { img.remove(); wrap.textContent = letter; });
+    wrap.append(img);
+  } else {
+    wrap.textContent = letter;
+  }
+  return wrap;
 }
 
 const state = {
@@ -228,25 +252,20 @@ const state = {
 const SORTERS = {
   member: (r) => r.name.toLowerCase(),
   role: (r) => r.roleRank,
-  level: (r) => r.level,
   health: (r) => r.health.cur,
-  hunger: (r) => r.hunger.cur,
-  buff: (r) => BUFF_RANK[r.buff.state],
+  buff: (r) => BUFF_RANK[r.buff.state] * 1e14 + (r.buff.endAt || 0),
+  damage: (r) => r.damage,
   seen: (r) => r.lastSeen,
 };
 
-function visibleRows(now) {
+function visibleRows() {
   const q = state.filterText.trim().toLowerCase();
   let rows = state.rows.filter((r) => !q || r.name.toLowerCase().includes(q));
-  switch (state.filterStatus) {
-    case "buffed": case "neutral": case "debuffed":
-      rows = rows.filter((r) => r.buff.state === state.filterStatus); break;
-    case "no-food": rows = rows.filter((r) => r.hunger.cur === 0); break;
-    case "online": rows = rows.filter((r) => isOnline(r, now)); break;
-    default: break;
+  if (["buffed", "neutral", "debuffed"].includes(state.filterStatus)) {
+    rows = rows.filter((r) => r.buff.state === state.filterStatus);
   }
   const get = SORTERS[state.sortKey] || SORTERS.role;
-  rows = rows.slice().sort((a, b) => {
+  return rows.slice().sort((a, b) => {
     let x = get(a), y = get(b);
     if (x == null) x = -Infinity;
     if (y == null) y = -Infinity;
@@ -256,44 +275,52 @@ function visibleRows(now) {
     if (c === 0) c = a.roleRank - b.roleRank || a.name.localeCompare(b.name);
     return c * state.sortDir;
   });
-  return rows;
 }
 
-function barCell(b, kind) {
-  const td = h("td");
-  if (b.cur == null) { td.textContent = "—"; return td; }
-  const pct = b.max ? Math.max(0, Math.min(100, (b.cur / b.max) * 100)) : 0;
-  let level = "ok";
-  if (pct < 35) level = "warn";
-  if (kind === "health" && b.cur < CONFIG.MIN_HEALTH_TO_FIGHT) level = "bad";
-  if (kind === "hunger" && b.cur === 0) level = "bad";
-  td.append(
-    h("div", { class: "bar " + level }, h("span", { style: "width:" + pct.toFixed(1) + "%" })),
-    h("div", { class: "barlabel" }, fmt(b.cur) + " / " + fmt(b.max))
-  );
-  return td;
+/* ---------- cells ---------- */
+function nameCell(row) {
+  const sub = h("div", { class: "sub" }, row.level != null ? "Lv " + row.level : "");
+  if (ROLE_LETTER[row.role]) {
+    sub.append(h("span", { class: "role " + row.role, title: ROLE_LABEL[row.role] }, ROLE_LETTER[row.role]));
+  }
+  return h("td", {},
+    h("div", { class: "namecell" },
+      avatarEl(row.raw && row.raw.avatarUrl, row.name, "avatar"),
+      h("div", {}, h("div", { class: "nm" }, row.name), sub)));
 }
 
-function buffCell(row) {
+function pillCell(row) {
   const b = row.buff;
   const td = h("td");
   if (b.state === "neutral") {
-    // Neutral: "Ready" in white
     td.append(h("span", { class: "timer ready" }, "Ready"));
   } else if (b.endAt) {
-    // Buffed: timer in green. Debuffed: timer in red.
-    td.append(h("span", { class: "timer " + b.state, "data-end": String(b.endAt) }, dur(b.endAt - Date.now())));
+    td.append(h("span", { class: "timer " + b.state }, icon("pill"),
+      h("span", { "data-end": String(b.endAt) }, dur(b.endAt - Date.now()))));
   } else {
-    // Fallback if the API gives no end time
-    td.append(h("span", { class: "timer " + b.state }, b.state === "buffed" ? "Buffed" : "Debuffed"));
+    td.append(h("span", { class: "timer " + b.state }, icon("pill"), b.state === "buffed" ? "Buffed" : "Debuffed"));
   }
   return td;
+}
+
+function barEl(kind, b) {
+  const pct = b.cur != null && b.max ? Math.max(0, Math.min(100, (b.cur / b.max) * 100)) : 0;
+  const el = h("div", { class: "bar " + kind + (pct < 8 ? " low" : "") },
+    h("span", { class: "fill", style: "width:" + pct.toFixed(1) + "%" }),
+    icon(kind === "health" ? "heart" : "fork"),
+    h("span", { class: "val" }, b.cur == null ? "—" : fmt(b.cur) + " / " + fmt(b.max)),
+    b.regen != null ? h("span", { class: "regen" }, icon("up"), fmt(b.regen)) : null);
+  return el;
+}
+
+function resourcesCell(row) {
+  return h("td", {}, h("div", { class: "res" }, barEl("health", row.health), barEl("hunger", row.hunger)));
 }
 
 function detailRow(row) {
   const u = row.raw;
   const tr = h("tr", { class: "detail" });
-  const td = h("td", { colspan: "6" });
+  const td = h("td", { colspan: "5" });
   if (!u) {
     td.textContent = "Could not load this member: " + row.error;
     tr.append(td);
@@ -310,11 +337,11 @@ function detailRow(row) {
     ["Loot chance", sk.lootChance ? sk.lootChance.total + "%" : "—"],
     ["Health regen / h", row.health.regen != null ? fmt(row.health.regen) : "—"],
     ["Hunger regen / h", row.hunger.regen != null ? fmt(row.hunger.regen) : "—"],
-    ["Total damage", fmt(u.stats ? u.stats.damagesCount : null)],
     ["Total XP", fmt(u.leveling ? u.leveling.totalXp : null)],
     ["Wealth rank value", u.rankings && u.rankings.userWealth ? fmt(u.rankings.userWealth.value) : "—"],
     ["Damage rank", u.rankings && u.rankings.userDamages ? "#" + u.rankings.userDamages.rank : "—"],
   ];
+  if (row.buff.codes.length) pairs.unshift(["Active buff", row.buff.codes.join(", ")]);
   const grid = h("div", { class: "detailgrid" });
   pairs.forEach(([k, v]) => grid.append(h("div", {}, h("span", {}, k), String(v))));
   td.append(grid);
@@ -322,32 +349,39 @@ function detailRow(row) {
   return tr;
 }
 
+/* ---------- header ---------- */
+function statEl(cls, iconName, count, label) {
+  return h("div", { class: "stat " + cls }, icon(iconName), h("span", { class: "big" }, count), label);
+}
+
+function renderHeader() {
+  const mu = state.mu;
+  if (mu) {
+    $("#muName").textContent = mu.name || CONFIG.MU_NAME;
+    $("#muAvatar").replaceWith(Object.assign(avatarEl(mu.avatarUrl, mu.name || CONFIG.MU_NAME, "mu-avatar"), { id: "muAvatar" }));
+    const up = mu.activeUpgradeLevels || {};
+    const chips = [];
+    if (up.headquarters != null) chips.push(h("span", { class: "chip", title: "Headquarters level" }, icon("hq"), up.headquarters));
+    if (up.dormitories != null) chips.push(h("span", { class: "chip", title: "Dormitories level" }, icon("bed"), up.dormitories));
+    $("#chips").replaceChildren(...chips);
+  }
+  const ok = state.rows.filter((r) => !r.failed);
+  const n = (s) => ok.filter((r) => r.buff.state === s).length;
+  $("#stats").replaceChildren(
+    statEl("members", "users", state.rows.length, "Members"),
+    statEl("buffed", "pill", n("buffed"), "Buffed"),
+    statEl("ready", "pill", n("neutral"), "Ready"),
+    statEl("debuffed", "pill", n("debuffed"), "Debuffed"));
+  $("#tabCount").textContent = String(state.rows.length);
+}
+
 function render() {
   const now = Date.now();
-
-  if (state.mu) {
-    const up = state.mu.activeUpgradeLevels || {};
-    $("#muName").textContent = state.mu.name || CONFIG.MU_NAME;
-    $("#muMeta").textContent = (state.mu.members || []).length + " members"
-      + (up.headquarters != null ? " · HQ level " + up.headquarters : "")
-      + (up.dormitories != null ? " · Dormitories " + up.dormitories : "");
-  }
+  renderHeader();
 
   const banner = $("#errorBanner");
   if (state.error) { banner.hidden = false; banner.textContent = state.error; }
   else banner.hidden = true;
-
-  const rows = state.rows;
-  const okRows = rows.filter((r) => !r.failed);
-  const count = (fn) => okRows.filter(fn).length;
-  const cards = [
-    ["Members", rows.length],
-    ["Buffed", count((r) => r.buff.state === "buffed")],
-    ["Neutral", count((r) => r.buff.state === "neutral")],
-    ["Debuffed", count((r) => r.buff.state === "debuffed")],
-  ];
-  const summary = $("#summary");
-  summary.replaceChildren(...cards.map(([l, v]) => h("div", { class: "card" }, h("div", { class: "v" }, v), h("div", { class: "l" }, l))));
 
   document.querySelectorAll("th[data-sort]").forEach((th) => {
     const active = th.dataset.sort === state.sortKey;
@@ -355,9 +389,13 @@ function render() {
     th.classList.toggle("desc", active && state.sortDir === -1);
   });
 
-  const tbody = $("#rows");
+  const rows = visibleRows();
+  $("#range").textContent = rows.length
+    ? "1–" + rows.length + " of " + state.rows.length
+    : (state.rows.length ? "No members match" : "No data yet");
+
   const frag = document.createDocumentFragment();
-  for (const row of visibleRows(now)) {
+  for (const row of rows) {
     const tr = h("tr", {
       class: "row",
       onclick: () => {
@@ -366,26 +404,19 @@ function render() {
       },
     });
     tr.append(
-      h("td", {},
-        isOnline(row, now) ? h("span", { class: "online-dot", title: "Online" }) : null,
-        h("span", { class: "name" }, row.name),
-        h("span", { class: "role " + row.role }, ROLE_LABEL[row.role])),
-      h("td", { class: "num" }, row.level != null ? row.level : "—"),
-      barCell(row.health, "health"),
-      barCell(row.hunger, "hunger"),
-      buffCell(row),
-      h("td", {}, row.failed
+      nameCell(row),
+      pillCell(row),
+      resourcesCell(row),
+      h("td", { class: "num mono hide-sm" }, fmt(row.damage)),
+      h("td", { class: "muted hide-sm" }, row.failed
         ? "load error"
-        : h("span", { "data-seen": row.lastSeen != null ? String(row.lastSeen) : "" }, relAgo(row.lastSeen, now)))
-    );
+        : h("span", { "data-seen": row.lastSeen != null ? String(row.lastSeen) : "" }, relAgo(row.lastSeen, now))));
     frag.append(tr);
     if (state.expanded.has(row.id)) frag.append(detailRow(row));
   }
-  tbody.replaceChildren(frag);
+  $("#rows").replaceChildren(frag);
   updateStatus();
 }
-
-function $(sel) { return document.querySelector(sel); }
 
 /* ============================================================
    Live updating
