@@ -97,7 +97,7 @@ button:hover, select:hover { border-color: var(--accent); }
   border-radius: 8px;
 }
 
-table { width: 100%; border-collapse: collapse; min-width: 860px; }
+table { width: 100%; border-collapse: collapse; min-width: 640px; }
 th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
 th { color: var(--muted); font-weight: 600; font-size: 12px; cursor: pointer; white-space: nowrap; user-select: none; background: var(--panel-2); }
 th.sorted::after { content: " ▲"; font-size: 10px; }
@@ -124,6 +124,16 @@ tbody tr.row:hover { background: var(--panel-2); }
 .badge.yes { color: var(--ok); border-color: var(--ok); }
 .badge.no { color: var(--bad); border-color: var(--bad); }
 .small { font-size: 12px; color: var(--muted); }
+
+.timer { font-weight: 650; font-variant-numeric: tabular-nums; }
+.timer.buffed { color: #3fd16f; }
+.timer.debuffed { color: #ff5a52; }
+.timer.ready { color: #ffffff; }
+@media (prefers-color-scheme: light) {
+  .timer.buffed { color: #1f9a4a; }
+  .timer.debuffed { color: #d12f27; }
+  .timer.ready { color: #1b242c; }
+}
 
 .online-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); margin-right: 6px; }
 
