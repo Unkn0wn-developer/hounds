@@ -231,12 +231,8 @@ const SORTERS = {
   level: (r) => r.level,
   health: (r) => r.health.cur,
   hunger: (r) => r.hunger.cur,
-  energy: (r) => r.energy.cur,
-  stamina: (r) => r.stamina.cur,
   buff: (r) => BUFF_RANK[r.buff.state],
-  attack: (r) => r.attack,
   seen: (r) => r.lastSeen,
-  fight: (r) => (r.canFight ? 1 : 0),
 };
 
 function visibleRows(now) {
@@ -245,7 +241,6 @@ function visibleRows(now) {
   switch (state.filterStatus) {
     case "buffed": case "neutral": case "debuffed":
       rows = rows.filter((r) => r.buff.state === state.filterStatus); break;
-    case "cannot-fight": rows = rows.filter((r) => !r.failed && !r.canFight); break;
     case "no-food": rows = rows.filter((r) => r.hunger.cur === 0); break;
     case "online": rows = rows.filter((r) => isOnline(r, now)); break;
     default: break;
@@ -282,39 +277,30 @@ function barCell(b, kind) {
 function buffCell(row) {
   const b = row.buff;
   const td = h("td");
-  const label = b.state === "buffed" ? "Buffed +" + b.buff + "%"
-    : b.state === "debuffed" ? "Debuffed -" + b.debuff + "%"
-    : "Neutral";
-  td.append(h("span", { class: "badge " + b.state }, label));
-  const extra = h("div", { class: "small" });
-  if (b.endAt) {
-    extra.append(document.createTextNode(b.state === "buffed" ? "ends in " : "ends in "));
-    extra.append(h("span", { "data-end": String(b.endAt) }, dur(b.endAt - Date.now())));
+  if (b.state === "neutral") {
+    // Neutral: "Ready" in white
+    td.append(h("span", { class: "timer ready" }, "Ready"));
+  } else if (b.endAt) {
+    // Buffed: timer in green. Debuffed: timer in red.
+    td.append(h("span", { class: "timer " + b.state, "data-end": String(b.endAt) }, dur(b.endAt - Date.now())));
+  } else {
+    // Fallback if the API gives no end time
+    td.append(h("span", { class: "timer " + b.state }, b.state === "buffed" ? "Buffed" : "Debuffed"));
   }
-  if (b.codes.length) extra.append(document.createTextNode((b.endAt ? " · " : "") + b.codes.join(", ")));
-  if (extra.childNodes.length) td.append(extra);
   return td;
 }
 
 function detailRow(row) {
   const u = row.raw;
   const tr = h("tr", { class: "detail" });
-  const td = h("td", { colspan: "10" });
+  const td = h("td", { colspan: "6" });
   if (!u) {
     td.textContent = "Could not load this member: " + row.error;
     tr.append(td);
     return tr;
   }
   const sk = u.skills || {};
-  const atk = sk.attack || {};
   const pairs = [
-    ["Attack total", fmt(atk.total)],
-    ["Base attack skill", fmt(atk.value)],
-    ["Weapon", fmt(atk.weapon)],
-    ["Ammo bonus", atk.ammoPercent != null ? atk.ammoPercent + "%" : "—"],
-    ["Buff bonus", (atk.buffsPercent || 0) + "%"],
-    ["Debuff penalty", (atk.debuffsPercent || 0) + "%"],
-    ["Rank bonus", atk.militaryRankPercent != null ? atk.militaryRankPercent + "%" : "—"],
     ["Military rank", u.militaryRank != null ? u.militaryRank : "—"],
     ["Crit chance", sk.criticalChance ? sk.criticalChance.total + "%" : "—"],
     ["Crit damage", sk.criticalDamages ? sk.criticalDamages.total + "%" : "—"],
@@ -356,12 +342,9 @@ function render() {
   const count = (fn) => okRows.filter(fn).length;
   const cards = [
     ["Members", rows.length],
-    ["Online now", count((r) => isOnline(r, now))],
     ["Buffed", count((r) => r.buff.state === "buffed")],
     ["Neutral", count((r) => r.buff.state === "neutral")],
     ["Debuffed", count((r) => r.buff.state === "debuffed")],
-    ["Can fight", count((r) => r.canFight)],
-    ["Hunger empty", count((r) => r.hunger.cur === 0)],
   ];
   const summary = $("#summary");
   summary.replaceChildren(...cards.map(([l, v]) => h("div", { class: "card" }, h("div", { class: "v" }, v), h("div", { class: "l" }, l))));
@@ -390,14 +373,10 @@ function render() {
       h("td", { class: "num" }, row.level != null ? row.level : "—"),
       barCell(row.health, "health"),
       barCell(row.hunger, "hunger"),
-      barCell(row.energy, "energy"),
-      barCell(row.stamina, "stamina"),
       buffCell(row),
-      h("td", { class: "num" }, fmt(row.attack)),
-      h("td", {}, h("span", { "data-seen": row.lastSeen != null ? String(row.lastSeen) : "" }, relAgo(row.lastSeen, now))),
       h("td", {}, row.failed
-        ? h("span", { class: "badge no" }, "error")
-        : h("span", { class: "badge " + (row.canFight ? "yes" : "no") }, row.canFight ? "Yes" : "No (HP)"))
+        ? "load error"
+        : h("span", { "data-seen": row.lastSeen != null ? String(row.lastSeen) : "" }, relAgo(row.lastSeen, now)))
     );
     frag.append(tr);
     if (state.expanded.has(row.id)) frag.append(detailRow(row));
