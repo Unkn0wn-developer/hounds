@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GreyHounds Live</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1 id="muName">GreyHounds</h1>
+      <p class="sub" id="muMeta">Loading…</p>
+    </div>
+    <div class="controls">
+      <input id="filterText" type="search" placeholder="Search member…" aria-label="Search member">
+      <select id="filterStatus" aria-label="Filter">
+        <option value="all">All members</option>
+        <option value="buffed">Buffed</option>
+        <option value="neutral">Neutral</option>
+        <option value="debuffed">Debuffed</option>
+        <option value="cannot-fight">Cannot fight (HP &lt; 10)</option>
+        <option value="no-food">Hunger empty</option>
+        <option value="online">Online now</option>
+      </select>
+      <button id="btnRefresh" type="button">Refresh now</button>
+      <button id="btnPause" type="button">Pause</button>
+    </div>
+  </header>
+
+  <p class="status" id="statusLine" role="status">Starting…</p>
+  <div class="banner" id="errorBanner" hidden></div>
+
+  <section class="cards" id="summary" aria-label="Summary"></section>
+
+  <div class="tablewrap">
+    <table id="roster">
+      <thead>
+        <tr>
+          <th data-sort="member">Member</th>
+          <th data-sort="level" class="num">Lvl</th>
+          <th data-sort="health">Health</th>
+          <th data-sort="hunger">Hunger</th>
+          <th data-sort="energy">Energy</th>
+          <th data-sort="stamina">Stamina</th>
+          <th data-sort="buff">Buff status</th>
+          <th data-sort="attack" class="num">Attack</th>
+          <th data-sort="seen">Last seen</th>
+          <th data-sort="fight">Can fight</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <p class="foot">Data comes live from WarEra's public API. Click a row for full stats. Click a column header to sort.</p>
+
+  <script src="app.js"></script>
+</body>
+</html>
