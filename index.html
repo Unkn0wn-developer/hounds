@@ -3,52 +3,77 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0d0e">
   <title>GreyHounds Live</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <div>
-      <h1 id="muName">GreyHounds</h1>
-      <p class="sub" id="muMeta">Loading…</p>
-    </div>
-    <div class="controls">
-      <input id="filterText" type="search" placeholder="Search member…" aria-label="Search member">
-      <select id="filterStatus" aria-label="Filter">
-        <option value="all">All members</option>
-        <option value="buffed">Buffed</option>
-        <option value="neutral">Neutral</option>
-        <option value="debuffed">Debuffed</option>
-        <option value="no-food">Hunger empty</option>
-        <option value="online">Online now</option>
-      </select>
-      <button id="btnRefresh" type="button">Refresh now</button>
-      <button id="btnPause" type="button">Pause</button>
-    </div>
-  </header>
+  <main class="page">
 
-  <p class="status" id="statusLine" role="status">Starting…</p>
-  <div class="banner" id="errorBanner" hidden></div>
+    <section class="mu-head">
+      <div class="chips" id="chips"></div>
+      <div class="mu-row">
+        <div class="mu-id">
+          <span class="mu-avatar" id="muAvatar"></span>
+          <h1 id="muName">GreyHounds</h1>
+        </div>
+        <div class="mu-info">
+          <div class="eyebrow">Information</div>
+          <div class="stats" id="stats"></div>
+        </div>
+      </div>
+    </section>
 
-  <section class="cards" id="summary" aria-label="Summary"></section>
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab active" type="button">Members <span class="count" id="tabCount">0</span></button>
+    </nav>
 
-  <div class="tablewrap">
-    <table id="roster">
-      <thead>
-        <tr>
-          <th data-sort="member">Member</th>
-          <th data-sort="level" class="num">Lvl</th>
-          <th data-sort="health">Health</th>
-          <th data-sort="hunger">Hunger</th>
-          <th data-sort="buff">Buff</th>
-          <th data-sort="seen">Last seen</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
-  </div>
+    <section class="panel">
+      <div class="panel-top">
+        <div>
+          <h2>Members</h2>
+          <p class="range" id="range">Loading…</p>
+        </div>
+        <div class="tools">
+          <label class="search">
+            <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+            <input id="filterText" type="search" placeholder="Search by name…" aria-label="Search by name">
+          </label>
+          <select id="filterStatus" aria-label="Filter by pill status">
+            <option value="all">All pills</option>
+            <option value="buffed">Buffed</option>
+            <option value="neutral">Ready</option>
+            <option value="debuffed">Debuffed</option>
+          </select>
+          <button id="btnRefresh" type="button">Refresh</button>
+          <button id="btnPause" type="button">Pause</button>
+        </div>
+      </div>
 
-  <p class="foot">Data comes live from WarEra's public API. Click a row for full stats. Click a column header to sort.</p>
+      <div class="banner" id="errorBanner" hidden></div>
+
+      <div class="tablewrap">
+        <table id="roster">
+          <thead>
+            <tr>
+              <th data-sort="member">Name</th>
+              <th data-sort="buff">Pill</th>
+              <th data-sort="health">Resources</th>
+              <th data-sort="damage" class="num hide-sm">Lifetime dmg</th>
+              <th data-sort="seen" class="hide-sm">Last seen</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="status" id="statusLine" role="status">Starting…</p>
+    <p class="foot">Live data from WarEra's public API. Click a row for more stats, click a column header to sort.</p>
+  </main>
 
   <script src="app.js"></script>
 </body>
