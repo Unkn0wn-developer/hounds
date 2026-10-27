@@ -142,6 +142,16 @@ tbody tr:last-child td { border-bottom: 0; }
 .timer.debuffed { color: var(--red); }
 .timer.ready { color: #fff; font-weight: 500; }
 
+.build { display: inline-flex; align-items: center; gap: 3px; font-size: 16px; color: var(--muted); }
+.build .ico { font-size: 16px; }
+.build.damage { color: var(--pink); }
+.build.eco { color: var(--yellow); }
+.build.hybrid .ico:first-child { color: var(--pink); }
+.build.hybrid .ico:last-child { color: var(--yellow); }
+.stat.eco .big, .stat.eco .ico { color: var(--yellow); }
+.stat.dmgb .big, .stat.dmgb .ico { color: var(--pink); }
+.stat.hyb .big, .stat.hyb .ico { color: var(--pink); }
+
 .reset { font-weight: 500; font-size: 12px; font-variant-numeric: tabular-nums; }
 .reset.avail { color: var(--green); }
 .reset.wait { color: var(--yellow); }
@@ -201,7 +211,7 @@ tr.detail td { background: var(--panel-2); }
     display: grid; align-items: center; gap: 7px 8px;
     grid-template-columns: repeat(6, 1fr);
     grid-template-areas:
-      "name name name name pill pill"
+      "name name name build pill pill"
       "res res res res res res"
       "dmg dmg seen seen reset reset";
     padding: 9px 12px; border-bottom: 1px solid var(--line-soft);
@@ -210,6 +220,7 @@ tr.detail td { background: var(--panel-2); }
   tr.row:hover td { background: none; }
   tr.row td { display: block; padding: 0; border: 0; }
   td.c-name { grid-area: name; }
+  td.c-build { grid-area: build; text-align: right; }
   td.c-pill { grid-area: pill; text-align: right; }
   td.c-res { grid-area: res; }
   td.c-dmg { grid-area: dmg; text-align: left; }
