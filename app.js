@@ -482,6 +482,7 @@ function renderHeader() {
 
 function render() {
   const now = Date.now();
+  savePrefs();
   renderHeader();
 
   const banner = $("#errorBanner");
@@ -588,7 +589,30 @@ function tick() {
   if (!state.paused && !state.loading && state.nextAt && now >= state.nextAt) refresh();
 }
 
+/* ---------- Remember the build filter and sort order across page reloads ---------- */
+const PREFS_KEY = "greyhounds-live-prefs-v1";
+const BUILD_FILTERS = ["all", "damage", "eco", "hybrid"];
+
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+    if (BUILD_FILTERS.includes(p.filterBuild)) state.filterBuild = p.filterBuild;
+    if (typeof p.sortKey === "string" && Object.prototype.hasOwnProperty.call(SORTERS, p.sortKey)) state.sortKey = p.sortKey;
+    if (p.sortDir === 1 || p.sortDir === -1) state.sortDir = p.sortDir;
+  } catch (_) { /* storage blocked or corrupt: just use the defaults */ }
+}
+
+function savePrefs() {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({
+      filterBuild: state.filterBuild, sortKey: state.sortKey, sortDir: state.sortDir,
+    }));
+  } catch (_) { /* storage blocked: page still works, it just won't remember */ }
+}
+
 function init() {
+  loadPrefs();
+  $("#filterBuild").value = state.filterBuild;
   $("#filterText").addEventListener("input", (e) => { state.filterText = e.target.value; render(); });
   $("#filterBuild").addEventListener("change", (e) => { state.filterBuild = e.target.value; render(); });
   $("#sortSelect").addEventListener("change", (e) => { state.sortKey = e.target.value; state.sortDir = 1; render(); });
