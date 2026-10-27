@@ -35,12 +35,12 @@ const BUFF_RANK = { buffed: 2, neutral: 1, debuffed: 0 };
 const ICONS = {
   heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
   fork: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>',
-  pill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8.5" width="20" height="7" rx="3.5" transform="rotate(-45 12 12)"/><path d="M9.5 9.5l5 5"/></svg>',
+  pill: '<svg viewBox="0 0 24 24" fill="none"><g transform="rotate(-40 12 12)"><rect x="2.5" y="7.2" width="19" height="9.6" rx="4.8" stroke="currentColor" stroke-width="2.2"/><path d="M12 7.2H7.3a4.8 4.8 0 0 0 0 9.6H12Z" fill="currentColor"/></g></svg>',
   up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/><path d="M6 20l6-6 6 6"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.8c2 .6 3.3 2.3 3.5 5.2"/></svg>',
   hq: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 000 8.4M16.2 7.8a6 6 0 010 8.4M4.9 4.9a10 10 0 000 14.2M19.1 4.9a10 10 0 010 14.2"/></svg>',
-  flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3.2-.6 4.7-2.2 6.5C8.2 10.3 7 12 7 14.5A5 5 0 0017 15c0-1.8-.8-3-1.6-4.1.2 1.1-.1 2-.9 2.6.5-3.3-.7-5.9-2.5-8.1-.6-.8-1-1.4-.9-2.4zM12 21a3 3 0 01-3-3c0-1.3.8-2.1 1.7-3 .4 1 1.2 1.4 1.9 1.6C13.8 15 14.4 14 14.3 13c1 .9 1.7 2 1.7 3.2A3 3 0 0112 21z"/></svg>',
-  coin: '<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="7" rx="8" ry="3.5"/><path d="M4 10.2v3.3c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-3.3c-1.6 1.4-4.5 2.3-8 2.3s-6.4-.9-8-2.3z"/><path d="M4 15.7V18c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-2.3c-1.6 1.4-4.5 2.3-8 2.3s-6.4-.9-8-2.3z"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.7" stroke-linejoin="round"><path d="M15 2 L13.7 7.4 L14.6 10.8 L19.7 12.5 L21.6 11.7 L23 17.2 L22 22 L19.7 22.5 L18.8 19.3 L16.9 17.2 L15 19.4 L11.8 14.6 L9 19.7 L5.7 20.1 L6.9 22.5 L4.8 21.2 L2 16.3 L3.9 11.7 L5.7 14.6 L8 10 L10.9 4.4 Z"/></svg>',
+  coin: '<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="9" rx="9.5" ry="5.2"/><rect x="2.6" y="11.6" width="2.6" height="6.4" rx="1"/><rect x="6.6" y="13.2" width="4.8" height="6.4" rx="1"/><rect x="12.6" y="13.2" width="4.8" height="6.4" rx="1"/><rect x="18.8" y="11.6" width="2.6" height="6.4" rx="1"/></svg>',
   bed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18V6M3 14h18v4M21 14v-2a3 3 0 00-3-3h-7v5"/><circle cx="7" cy="11" r="1.5"/></svg>',
 };
 
@@ -297,7 +297,6 @@ const state = {
   sortKey: "role",
   sortDir: 1,
   filterText: "",
-  filterStatus: "all",
   filterBuild: "all",
   expanded: new Set(),
   paused: false,
@@ -311,7 +310,6 @@ const SORTERS = {
   member: (r) => r.name.toLowerCase(),
   role: (r) => r.roleRank,
   health: (r) => r.health.cur,
-  buff: (r) => BUFF_RANK[r.buff.state] * 1e14 + (r.buff.endAt || 0),
   damage: (r) => r.damage,
   seen: (r) => r.lastSeen,
   reset: (r) => r.resetAt,
@@ -321,9 +319,6 @@ const SORTERS = {
 function visibleRows() {
   const q = state.filterText.trim().toLowerCase();
   let rows = state.rows.filter((r) => !q || r.name.toLowerCase().includes(q));
-  if (["buffed", "neutral", "debuffed"].includes(state.filterStatus)) {
-    rows = rows.filter((r) => r.buff.state === state.filterStatus);
-  }
   if (["damage", "eco", "hybrid"].includes(state.filterBuild)) {
     rows = rows.filter((r) => r.build.type === state.filterBuild);
   }
@@ -480,7 +475,6 @@ function renderHeader() {
   $("#stats").replaceChildren(
     ...statNodes,
     statEl("buffed", "pill", n("buffed"), "Buffed"),
-    statEl("ready", "pill", n("neutral"), "Ready"),
     statEl("debuffed", "pill", n("debuffed"), "Debuffed"));
   $("#tabCount").textContent = String(state.rows.length);
 }
@@ -595,7 +589,6 @@ function tick() {
 
 function init() {
   $("#filterText").addEventListener("input", (e) => { state.filterText = e.target.value; render(); });
-  $("#filterStatus").addEventListener("change", (e) => { state.filterStatus = e.target.value; render(); });
   $("#filterBuild").addEventListener("change", (e) => { state.filterBuild = e.target.value; render(); });
   $("#sortSelect").addEventListener("change", (e) => { state.sortKey = e.target.value; state.sortDir = 1; render(); });
   $("#btnSortDir").addEventListener("click", () => { state.sortDir = -state.sortDir; render(); });
