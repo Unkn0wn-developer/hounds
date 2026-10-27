@@ -12,6 +12,18 @@ const CONFIG = {
   BATCH_SIZE: 25,
   // How long after a skills reset the next one becomes available.
   SKILL_RESET_COOLDOWN_DAYS: 7,
+
+  // ---- Build detection (UNVERIFIED guess, tune against SpyWarEra) ----
+  // A skill at level N costs N points, so points spent in a skill = N*(N+1)/2.
+  // ecoShare = ecoPoints / (ecoPoints + damagePoints)
+  //   ecoShare >= ECO_MIN_SHARE    -> Eco build
+  //   ecoShare <= DAMAGE_MAX_SHARE -> Damage build
+  //   anything in between          -> Hybrid
+  // Set both to 0.5 to turn Hybrid off (only Eco / Damage).
+  ECO_MIN_SHARE: 0.6,
+  DAMAGE_MAX_SHARE: 0.4,
+  ECO_SKILLS: ["energy", "entrepreneurship", "production", "companies", "management"],
+  DAMAGE_SKILLS: ["attack", "precision", "criticalChance", "criticalDamages", "armor", "dodge", "lootChance", "health", "hunger"],
 };
 
 const ROLE_RANK = { owner: 0, manager: 1, commander: 2, member: 3 };
@@ -27,6 +39,8 @@ const ICONS = {
   up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/><path d="M6 20l6-6 6 6"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.8c2 .6 3.3 2.3 3.5 5.2"/></svg>',
   hq: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 000 8.4M16.2 7.8a6 6 0 010 8.4M4.9 4.9a10 10 0 000 14.2M19.1 4.9a10 10 0 010 14.2"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3.2-.6 4.7-2.2 6.5C8.2 10.3 7 12 7 14.5A5 5 0 0017 15c0-1.8-.8-3-1.6-4.1.2 1.1-.1 2-.9 2.6.5-3.3-.7-5.9-2.5-8.1-.6-.8-1-1.4-.9-2.4zM12 21a3 3 0 01-3-3c0-1.3.8-2.1 1.7-3 .4 1 1.2 1.4 1.9 1.6C13.8 15 14.4 14 14.3 13c1 .9 1.7 2 1.7 3.2A3 3 0 0112 21z"/></svg>',
+  coin: '<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="7" rx="8" ry="3.5"/><path d="M4 10.2v3.3c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-3.3c-1.6 1.4-4.5 2.3-8 2.3s-6.4-.9-8-2.3z"/><path d="M4 15.7V18c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-2.3c-1.6 1.4-4.5 2.3-8 2.3s-6.4-.9-8-2.3z"/></svg>',
   bed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18V6M3 14h18v4M21 14v-2a3 3 0 00-3-3h-7v5"/><circle cx="7" cy="11" r="1.5"/></svg>',
 };
 
@@ -136,6 +150,30 @@ function buffInfo(u) {
   return { state, buff, debuff, endAt: endAt ? Date.parse(endAt) : null, codes };
 }
 
+// Skill points spent in one skill: level N costs N points, total N*(N+1)/2.
+function spentIn(skills, names) {
+  let total = 0;
+  for (const name of names) {
+    const lvl = skills && skills[name] && typeof skills[name].level === "number" ? skills[name].level : 0;
+    total += (lvl * (lvl + 1)) / 2;
+  }
+  return total;
+}
+
+// Eco / damage / hybrid, from how skill points are split.
+function buildInfo(u) {
+  const sk = u.skills || {};
+  const eco = spentIn(sk, CONFIG.ECO_SKILLS);
+  const dmg = spentIn(sk, CONFIG.DAMAGE_SKILLS);
+  const total = eco + dmg;
+  if (total === 0) return { type: "none", eco, dmg, ecoShare: null };
+  const ecoShare = eco / total;
+  let type = "hybrid";
+  if (ecoShare >= CONFIG.ECO_MIN_SHARE) type = "eco";
+  else if (ecoShare <= CONFIG.DAMAGE_MAX_SHARE) type = "damage";
+  return { type, eco, dmg, ecoShare };
+}
+
 function buildRow(id, result, mu) {
   const role = roleOf(id, mu);
   if (!result || !result.ok || !result.data) {
@@ -145,6 +183,7 @@ function buildRow(id, result, mu) {
       name: "Unknown (" + id.slice(-6) + ")",
       level: null, health: barOf(null), hunger: barOf(null),
       buff: { state: "neutral", buff: 0, debuff: 0, endAt: null, codes: [] },
+      build: { type: "none", eco: 0, dmg: 0, ecoShare: null },
       damage: null, lastSeen: null, resetAt: null, raw: null,
     };
   }
@@ -158,6 +197,7 @@ function buildRow(id, result, mu) {
     health: barOf(sk.health),
     hunger: barOf(sk.hunger),
     buff: buffInfo(u),
+    build: buildInfo(u),
     damage: u.stats && typeof u.stats.damagesCount === "number" ? u.stats.damagesCount : null,
     lastSeen: u.dates && u.dates.lastConnectionAt ? Date.parse(u.dates.lastConnectionAt) : null,
     // Time when the next skills reset becomes available. 0 = never reset, so available now.
@@ -258,6 +298,7 @@ const state = {
   sortDir: 1,
   filterText: "",
   filterStatus: "all",
+  filterBuild: "all",
   expanded: new Set(),
   paused: false,
   loading: false,
@@ -274,6 +315,7 @@ const SORTERS = {
   damage: (r) => r.damage,
   seen: (r) => r.lastSeen,
   reset: (r) => r.resetAt,
+  build: (r) => (r.build.ecoShare == null ? -1 : r.build.ecoShare),
 };
 
 function visibleRows() {
@@ -281,6 +323,9 @@ function visibleRows() {
   let rows = state.rows.filter((r) => !q || r.name.toLowerCase().includes(q));
   if (["buffed", "neutral", "debuffed"].includes(state.filterStatus)) {
     rows = rows.filter((r) => r.buff.state === state.filterStatus);
+  }
+  if (["damage", "eco", "hybrid"].includes(state.filterBuild)) {
+    rows = rows.filter((r) => r.build.type === state.filterBuild);
   }
   const get = SORTERS[state.sortKey] || SORTERS.role;
   return rows.slice().sort((a, b) => {
@@ -305,6 +350,21 @@ function nameCell(row) {
     h("div", { class: "namecell" },
       avatarEl(row.raw && row.raw.avatarUrl, row.name, "avatar"),
       h("div", {}, h("div", { class: "nm" }, row.name), sub)));
+}
+
+const BUILD_LABEL = { damage: "Damage build", eco: "Eco build", hybrid: "Hybrid build", none: "No skills yet" };
+
+function buildCell(row) {
+  const b = row.build;
+  const td = h("td");
+  const pct = b.ecoShare == null ? "" : " — " + Math.round((1 - b.ecoShare) * 100) + "% damage / " + Math.round(b.ecoShare * 100) + "% eco";
+  const wrap = h("span", { class: "build " + b.type, title: BUILD_LABEL[b.type] + pct });
+  if (b.type === "damage") wrap.append(icon("flame"));
+  else if (b.type === "eco") wrap.append(icon("coin"));
+  else if (b.type === "hybrid") wrap.append(icon("flame"), icon("coin"));
+  else wrap.append("—");
+  td.append(wrap);
+  return td;
 }
 
 function pillCell(row) {
@@ -355,7 +415,7 @@ function resourcesCell(row) {
 function detailRow(row) {
   const u = row.raw;
   const tr = h("tr", { class: "detail" });
-  const td = h("td", { colspan: "6" });
+  const td = h("td", { colspan: "7" });
   if (!u) {
     td.textContent = "Could not load this member: " + row.error;
     tr.append(td);
@@ -376,6 +436,11 @@ function detailRow(row) {
     ["Wealth rank value", u.rankings && u.rankings.userWealth ? fmt(u.rankings.userWealth.value) : "—"],
     ["Damage rank", u.rankings && u.rankings.userDamages ? "#" + u.rankings.userDamages.rank : "—"],
   ];
+  pairs.unshift(["Build", BUILD_LABEL[row.build.type]]);
+  pairs.splice(1, 0,
+    ["Eco skill points", row.build.eco],
+    ["Damage skill points", row.build.dmg],
+    ["Eco share", row.build.ecoShare == null ? "—" : Math.round(row.build.ecoShare * 100) + "%"]);
   if (u.dates && u.dates.lastSkillsResetAt) {
     pairs.push(["Last skills reset", new Date(u.dates.lastSkillsResetAt).toLocaleDateString()]);
   }
@@ -405,8 +470,15 @@ function renderHeader() {
   }
   const ok = state.rows.filter((r) => !r.failed);
   const n = (s) => ok.filter((r) => r.buff.state === s).length;
-  $("#stats").replaceChildren(
+  const nb = (t) => ok.filter((r) => r.build.type === t).length;
+  const statNodes = [
     statEl("members", "users", state.rows.length, "Members"),
+    statEl("eco", "coin", nb("eco"), "Eco build"),
+    statEl("dmgb", "flame", nb("damage"), "Damage build"),
+  ];
+  if (nb("hybrid") > 0) statNodes.push(statEl("hyb", "flame", nb("hybrid"), "Hybrid"));
+  $("#stats").replaceChildren(
+    ...statNodes,
     statEl("buffed", "pill", n("buffed"), "Buffed"),
     statEl("ready", "pill", n("neutral"), "Ready"),
     statEl("debuffed", "pill", n("debuffed"), "Debuffed"));
@@ -445,6 +517,7 @@ function render() {
     });
     tr.append(
       tag(nameCell(row), "c-name"),
+      tag(buildCell(row), "c-build"),
       tag(pillCell(row), "c-pill"),
       tag(resourcesCell(row), "c-res"),
       tag(h("td", { class: "num mono" }, fmt(row.damage)), "c-dmg", "Lifetime dmg"),
@@ -523,6 +596,7 @@ function tick() {
 function init() {
   $("#filterText").addEventListener("input", (e) => { state.filterText = e.target.value; render(); });
   $("#filterStatus").addEventListener("change", (e) => { state.filterStatus = e.target.value; render(); });
+  $("#filterBuild").addEventListener("change", (e) => { state.filterBuild = e.target.value; render(); });
   $("#sortSelect").addEventListener("change", (e) => { state.sortKey = e.target.value; state.sortDir = 1; render(); });
   $("#btnSortDir").addEventListener("click", () => { state.sortDir = -state.sortDir; render(); });
   $("#btnRefresh").addEventListener("click", () => refresh());
@@ -545,7 +619,7 @@ function init() {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { buildRow, buffInfo, roleOf, fmt, dur, durLong, relAgo };
+  module.exports = { buildRow, buffInfo, buildInfo, roleOf, fmt, dur, durLong, relAgo, CONFIG };
 } else {
   document.addEventListener("DOMContentLoaded", init);
 }
