@@ -42,6 +42,12 @@
             <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
             <input id="filterText" type="search" placeholder="Search by name…" aria-label="Search by name">
           </label>
+          <select id="filterBuild" aria-label="Filter by build">
+            <option value="all">All builds</option>
+            <option value="damage">Damage build</option>
+            <option value="eco">Eco build</option>
+            <option value="hybrid">Hybrid</option>
+          </select>
           <select id="filterStatus" aria-label="Filter by pill status">
             <option value="all">All pills</option>
             <option value="buffed">Buffed</option>
@@ -51,6 +57,7 @@
           <select id="sortSelect" class="only-sm" aria-label="Sort by">
             <option value="role">Sort: Role</option>
             <option value="member">Sort: Name</option>
+            <option value="build">Sort: Build</option>
             <option value="buff">Sort: Pill</option>
             <option value="health">Sort: Health</option>
             <option value="damage">Sort: Lifetime dmg</option>
@@ -70,6 +77,7 @@
           <thead>
             <tr>
               <th data-sort="member">Name</th>
+              <th data-sort="build">Build</th>
               <th data-sort="buff">Pill</th>
               <th data-sort="health">Resources</th>
               <th data-sort="damage" class="num">Lifetime dmg</th>
