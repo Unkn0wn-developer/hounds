@@ -29,18 +29,18 @@ const CONFIG = {
 const ROLE_RANK = { owner: 0, manager: 1, commander: 2, member: 3 };
 const ROLE_LABEL = { owner: "Owner", manager: "Manager", commander: "Commander", member: "Member" };
 const ROLE_LETTER = { owner: "O", manager: "M", commander: "C" };
-const BUFF_RANK = { buffed: 2, neutral: 1, debuffed: 0 };
+const PILL_ORDER = { buffed: 0, neutral: 1, debuffed: 2 };
 
 /* Small inline icons (static strings, not user data) */
 const ICONS = {
   heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
   fork: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>',
-  pill: '<svg viewBox="0 0 24 24" fill="none"><g transform="rotate(-40 12 12)"><rect x="2.5" y="7.2" width="19" height="9.6" rx="4.8" stroke="currentColor" stroke-width="2.2"/><path d="M12 7.2H7.3a4.8 4.8 0 0 0 0 9.6H12Z" fill="currentColor"/></g></svg>',
+  pill: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.22,11.29L11.29,4.22C13.64,1.88 17.43,1.88 19.78,4.22C22.12,6.56 22.12,10.36 19.78,12.71L12.71,19.78C10.36,22.12 6.56,22.12 4.22,19.78C1.88,17.43 1.88,13.64 4.22,11.29M5.64,12.71C4.59,13.75 4.24,15.24 4.6,16.57L10.59,10.59L14.83,14.83L18.36,11.29C19.93,9.73 19.93,7.2 18.36,5.64C16.8,4.07 14.27,4.07 12.71,5.64L5.64,12.71Z"/></svg>',
   up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/><path d="M6 20l6-6 6 6"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.8c2 .6 3.3 2.3 3.5 5.2"/></svg>',
   hq: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 000 8.4M16.2 7.8a6 6 0 010 8.4M4.9 4.9a10 10 0 000 14.2M19.1 4.9a10 10 0 010 14.2"/></svg>',
-  flame: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.7" stroke-linejoin="round"><path d="M15 2 L13.7 7.4 L14.6 10.8 L19.7 12.5 L21.6 11.7 L23 17.2 L22 22 L19.7 22.5 L18.8 19.3 L16.9 17.2 L15 19.4 L11.8 14.6 L9 19.7 L5.7 20.1 L6.9 22.5 L4.8 21.2 L2 16.3 L3.9 11.7 L5.7 14.6 L8 10 L10.9 4.4 Z"/></svg>',
-  coin: '<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="9" rx="9.5" ry="5.2"/><rect x="2.6" y="11.6" width="2.6" height="6.4" rx="1"/><rect x="6.6" y="13.2" width="4.8" height="6.4" rx="1"/><rect x="12.6" y="13.2" width="4.8" height="6.4" rx="1"/><rect x="18.8" y="11.6" width="2.6" height="6.4" rx="1"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.23316 8.59556C6.30214 8.03946 6.39735 6.92211 7.65403 5.34032C9.25423 3.32614 12.9443 1.00678 16.1654 1C8.5369 2.58693 13.5375 16.0826 18.3726 11.8508C19.221 11.0641 17.269 8.59556 17.269 8.59556C18.5037 9.19236 19.9038 9.62639 20.5798 10.7657C21.3109 12.5697 20.5867 15.0993 18.3726 18.3613C19.8004 17.7441 21.2143 17.1202 21.6834 16.1911C22.042 19.0259 22.3041 21.7996 19.4762 22.7016C18.952 22.8169 18.3519 22.9118 17.7036 23C18.2554 21.1215 15.4412 19.4328 16.7862 16.1911C15.8757 16.815 14.6618 16.7133 14.4894 19.0734C13.7858 16.8829 12.8133 14.7466 9.93707 12.9359C10.2613 15.2552 11.0545 18.3748 9.11628 19.4464C7.84716 20.1517 5.79862 18.3613 5.12958 17.6831C5.30891 19.8397 6.36421 21.5758 8.14375 22.7626C5.63998 22.2133 3.59835 21.1893 2.9224 19.4464C1.5912 17.188 1.81882 12.9359 4.02599 10.7657C6.23316 18.8089 7.75059 12.2713 6.23316 8.59556Z"/></svg>',
+  coin: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5C7.031 5 2 6.546 2 9.5S7.031 14 12 14c4.97 0 10-1.546 10-4.5S16.97 5 12 5zm-5 9.938v3c1.237.299 2.605.482 4 .541v-3a21.166 21.166 0 0 1-4-.541zm6 .54v3a20.994 20.994 0 0 0 4-.541v-3a20.994 20.994 0 0 1-4 .541zm6-1.181v3c1.801-.755 3-1.857 3-3.297v-3c0 1.44-1.199 2.542-3 3.297zm-14 3v-3C3.2 13.542 2 12.439 2 11v3c0 1.439 1.2 2.542 3 3.297z"/></svg>',
   bed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18V6M3 14h18v4M21 14v-2a3 3 0 00-3-3h-7v5"/><circle cx="7" cy="11" r="1.5"/></svg>',
 };
 
@@ -313,6 +313,7 @@ const SORTERS = {
   damage: (r) => r.damage,
   seen: (r) => r.lastSeen,
   reset: (r) => r.resetAt,
+  buff: (r) => PILL_ORDER[r.buff.state] * 1e14 + (r.buff.endAt || 0),
   build: (r) => (r.build.ecoShare == null ? -1 : r.build.ecoShare),
 };
 
